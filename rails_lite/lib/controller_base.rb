@@ -9,10 +9,10 @@ class ControllerBase
   attr_reader :req, :res, :params
 
   # Setup the controller
-  def initialize(req, res)
+  def initialize(req, res, params = {})
     @res = res
     @req = req
-    @params = {}
+    @params = params
   end
 
   # Helper method to alias @already_built_response
@@ -29,6 +29,7 @@ class ControllerBase
       # @res['Location'] = url 
       @res.location = url
       @already_built_response = true
+      self.session.store_session(@res)
     end
   end
 
@@ -42,6 +43,7 @@ class ControllerBase
       @res['Content-Type'] = content_type
       @res.write(content)
       @already_built_response = true
+      self.session.store_session(@res)
     end
   end
 
@@ -59,10 +61,15 @@ class ControllerBase
 
   # method exposing a `Session` object
   def session
+    @session ||= Session.new(@req)
   end
 
   # use this with the router to call action_name (:index, :show, :create...)
-  def invoke_action(name)
+  def invoke_action(action_name)
+    self.send(action_name)
+    unless already_built_response? 
+      render(action_name.to_s)
+    end
   end
 end
 
